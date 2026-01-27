@@ -1,5 +1,3 @@
-// The Swift Programming Language
-// https://docs.swift.org/swift-book
 import SwiftUI
 import Foundation
 
@@ -124,14 +122,14 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
-        .onChange(of: viewModel.messages) { messages in
-            // Track the last message ID to detect new messages
-            if let lastMessage = messages.last, lastMessage.id != lastMessageId {
+        .onChange(of: viewModel.messages.count) { count in
+            // Track the last message ID when count changes (new message added)
+            if let lastMessage = viewModel.messages.last, lastMessage.id != lastMessageId {
                 lastMessageId = lastMessage.id
             }
         }
     }
-
+    
     private func scrollToBottom(proxy: ScrollViewProxy) {
         guard let lastMessage = viewModel.messages.last else { return }
         
