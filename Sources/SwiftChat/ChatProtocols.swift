@@ -9,7 +9,7 @@ public enum MessageType {
 }
 
 /// Protocol that chat messages must conform to
-public protocol ChatMessageProtocol: Identifiable {
+public protocol ChatMessageProtocol: Identifiable, Equatable {
     var id: String { get }
     var content: String { get }
     var type: MessageType { get }
