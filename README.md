@@ -1,6 +1,6 @@
 # SwiftChat
 
-A SwiftUI chat interface package for iOS, macOS, tvOS, and watchOS. SwiftChat provides beautiful, customizable UI components for building chat applications with support for text messages, images, and links.
+A SwiftUI chat interface package for iOS. SwiftChat provides beautiful, customizable UI components for building chat applications with support for text messages, images, and links.
 
 ## Features
 
@@ -14,10 +14,6 @@ A SwiftUI chat interface package for iOS, macOS, tvOS, and watchOS. SwiftChat pr
 ## Requirements
 
 - iOS 15.0+
-- macOS 12.0+
-- tvOS 15.0+
-- watchOS 8.0+
-- Swift 6.2+
 
 ## Installation
 
@@ -230,14 +226,10 @@ The `MessageType` enum supports three types:
 
 - [Supabase Swift](https://github.com/supabase/supabase-swift) - For backend integration (optional, you can use any backend)
 
-## License
-
-[Add your license here]
-
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Author
 
-[Your name/username]
+Rutvik Pipaliya
