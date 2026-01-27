@@ -13,6 +13,7 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
     
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
+    @State private var lastMessageId: String = ""
     
     public init(currentUser: any ProfileProtocol, otherUser: any ProfileProtocol, viewModel: @autoclosure @escaping () -> ViewModel) {
         self.currentUser = currentUser
@@ -49,13 +50,23 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
                         }
                         .padding(.top)
                     }
-                    .onChange(of: viewModel.messages.count) { _ in
-                        guard let last = viewModel.messages.last else { return }
-                        DispatchQueue.main.async {
-                            withAnimation {
-                                proxy.scrollTo(last.id, anchor: .bottom)
+                    .onAppear {
+                        // Scroll to bottom when view first appears (if messages exist)
+                        if let lastMessage = viewModel.messages.last {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                                withAnimation {
+                                    proxy.scrollTo(lastMessage.id, anchor: .bottom)
+                                }
                             }
                         }
+                    }
+                    .onChange(of: viewModel.messages.count) { _ in
+                        // Scroll when message count changes
+                        scrollToBottom(proxy: proxy)
+                    }
+                    .onChange(of: lastMessageId) { _ in
+                        // Scroll when a new message is added (tracked by ID)
+                        scrollToBottom(proxy: proxy)
                     }
                 }
             } else {
@@ -106,11 +117,29 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
             )
         }
         .navigationTitle(otherUser.full_name)
+        .navigationBarTitleDisplayMode(.inline)
         .task {
             await viewModel.start()
         }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
+        }
+        .onChange(of: viewModel.messages) { messages in
+            // Track the last message ID to detect new messages
+            if let lastMessage = messages.last, lastMessage.id != lastMessageId {
+                lastMessageId = lastMessage.id
+            }
+        }
+    }
+
+    private func scrollToBottom(proxy: ScrollViewProxy) {
+        guard let lastMessage = viewModel.messages.last else { return }
+        
+        // Use a small delay to ensure the view is laid out
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                proxy.scrollTo(lastMessage.id, anchor: .bottom)
+            }
         }
     }
 }
