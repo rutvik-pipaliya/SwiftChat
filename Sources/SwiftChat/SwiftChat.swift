@@ -27,6 +27,14 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 12) {
+                            Color.clear
+                                .frame(height: 1)
+                                .onAppear {
+                                    Task {
+                                        await viewModel.loadMoreMessages()
+                                    }
+                                }
+                            
                             ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { _, message in
                                 MessageBubble(
                                     message: message,
