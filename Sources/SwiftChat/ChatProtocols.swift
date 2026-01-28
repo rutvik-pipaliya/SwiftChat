@@ -32,4 +32,5 @@ public protocol ChatViewModelProtocol: ObservableObject {
     func sendImageMessage(image: UIImage) async
     func deleteMessage(_ message: any ChatMessageProtocol) async
     func start() async
+    func loadMoreMessages() async
 }
