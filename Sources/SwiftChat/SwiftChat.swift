@@ -1,40 +1,41 @@
 import SwiftUI
-import Foundation
 
-public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
-    
-    let currentUser: any ProfileProtocol
-    let otherUser: any ProfileProtocol
-    
-    @StateObject private var viewModel: ViewModel
+public struct PaginatedChatView<ViewModel: ObservableObject & ChatViewModelProtocol>: View {
+    public let currentUser: any ProfileProtocol
+    public let otherUser: any ProfileProtocol
+    @ObservedObject public var viewModel: ViewModel
+    public var showLoadingMore: Bool
+    public var hasMoreOlderMessages: Bool
+
     @State private var messageText = ""
-    
     @State private var showImagePicker = false
     @State private var selectedImage: UIImage?
     @State private var lastMessageId: String = ""
-    
-    public init(currentUser: any ProfileProtocol, otherUser: any ProfileProtocol, viewModel: @autoclosure @escaping () -> ViewModel) {
+    @State private var initialScrollDone = false
+
+    public init(
+        currentUser: any ProfileProtocol,
+        otherUser: any ProfileProtocol,
+        viewModel: ViewModel,
+        showLoadingMore: Bool,
+        hasMoreOlderMessages: Bool
+    ) {
         self.currentUser = currentUser
         self.otherUser = otherUser
-        _viewModel = StateObject(wrappedValue: viewModel())
+        self.viewModel = viewModel
+        self.showLoadingMore = showLoadingMore
+        self.hasMoreOlderMessages = hasMoreOlderMessages
     }
-    
+
     public var body: some View {
         let canSend = !messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || selectedImage != nil
-        
-        VStack {
-            if (!viewModel.messages.isEmpty) {
+
+        VStack(spacing: 0) {
+            if !viewModel.messages.isEmpty {
                 ScrollViewReader { proxy in
                     ScrollView {
                         VStack(spacing: 12) {
-                            Color.clear
-                                .frame(height: 1)
-                                .onAppear {
-                                    Task {
-                                        await viewModel.loadMoreMessages()
-                                    }
-                                }
-                            
+                            loadMoreTrigger()
                             ForEach(Array(viewModel.messages.enumerated()), id: \.element.id) { _, message in
                                 MessageBubble(
                                     message: message,
@@ -57,21 +58,18 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
                         .padding(.top)
                     }
                     .onAppear {
-                        // Scroll to bottom when view first appears (if messages exist)
                         if let lastMessage = viewModel.messages.last {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                 withAnimation {
                                     proxy.scrollTo(lastMessage.id, anchor: .bottom)
                                 }
+                                initialScrollDone = true
                             }
+                        } else {
+                            initialScrollDone = true
                         }
                     }
-                    .onChange(of: viewModel.messages.count) { _ in
-                        // Scroll when message count changes
-                        scrollToBottom(proxy: proxy)
-                    }
-                    .onChange(of: lastMessageId) { _ in
-                        // Scroll when a new message is added (tracked by ID)
+                    .onChange(of: lastMessageId) { _, _ in
                         scrollToBottom(proxy: proxy)
                     }
                 }
@@ -82,9 +80,9 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
                     Spacer()
                 }
             }
-            
+
             Divider()
-            
+
             if let image = selectedImage {
                 HStack {
                     Image(uiImage: image)
@@ -92,16 +90,14 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
                         .scaledToFit()
                         .frame(height: 80)
                         .cornerRadius(8)
-                    
                     Spacer()
-                    
                     Button("Remove") {
                         selectedImage = nil
                     }
                 }
                 .padding(.horizontal)
             }
-            
+
             ChatInputBar(
                 messageText: $messageText,
                 onSend: {
@@ -124,24 +120,60 @@ public struct ChatView<ViewModel: ChatViewModelProtocol>: View {
         }
         .navigationTitle(otherUser.full_name)
         .navigationBarTitleDisplayMode(.inline)
-        .task {
-            await viewModel.start()
-        }
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
-        .onChange(of: viewModel.messages.count) { count in
-            // Track the last message ID when count changes (new message added)
+        .onChange(of: viewModel.messages.count) { _, count in
             if let lastMessage = viewModel.messages.last, lastMessage.id != lastMessageId {
                 lastMessageId = lastMessage.id
             }
         }
     }
-    
+
+    @ViewBuilder
+    private func loadMoreTrigger() -> some View {
+        Group {
+            if showLoadingMore {
+                HStack(spacing: 8) {
+                    ProgressView()
+                    Text("Loading older messages…")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .padding(.vertical, 12)
+            } else if hasMoreOlderMessages {
+                Button {
+                    Task {
+                        await viewModel.loadMoreMessages()
+                    }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "arrow.down.circle")
+                        Text("Load older messages")
+                            .font(.subheadline)
+                    }
+                    .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .padding(.vertical, 12)
+            } else {
+                Color.clear
+                    .frame(height: 20)
+            }
+        }
+        .onAppear {
+            guard initialScrollDone else { return }
+            Task {
+                await viewModel.loadMoreMessages()
+            }
+        }
+    }
+
     private func scrollToBottom(proxy: ScrollViewProxy) {
         guard let lastMessage = viewModel.messages.last else { return }
-        
-        // Use a small delay to ensure the view is laid out
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             withAnimation(.easeOut(duration: 0.3)) {
                 proxy.scrollTo(lastMessage.id, anchor: .bottom)
