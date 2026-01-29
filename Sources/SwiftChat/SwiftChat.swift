@@ -124,7 +124,7 @@ public struct ChatView<ViewModel: ObservableObject & ChatViewModelProtocol>: Vie
         .sheet(isPresented: $showImagePicker) {
             ImagePicker(image: $selectedImage)
         }
-        .onChange(of: viewModel.messages.count) { _, count in
+        .onChange(of: viewModel.messages.count) { count in
             if let lastMessage = viewModel.messages.last, lastMessage.id != lastMessageId {
                 lastMessageId = lastMessage.id
             }
