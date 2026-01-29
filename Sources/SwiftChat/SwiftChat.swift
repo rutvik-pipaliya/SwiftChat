@@ -1,6 +1,7 @@
 import SwiftUI
+import Foundation
 
-public struct PaginatedChatView<ViewModel: ObservableObject & ChatViewModelProtocol>: View {
+public struct ChatView<ViewModel: ObservableObject & ChatViewModelProtocol>: View {
     public let currentUser: any ProfileProtocol
     public let otherUser: any ProfileProtocol
     @ObservedObject public var viewModel: ViewModel
