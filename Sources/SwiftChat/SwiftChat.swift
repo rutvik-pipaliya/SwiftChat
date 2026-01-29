@@ -70,7 +70,7 @@ public struct ChatView<ViewModel: ObservableObject & ChatViewModelProtocol>: Vie
                             initialScrollDone = true
                         }
                     }
-                    .onChange(of: lastMessageId) { _, _ in
+                    .onChange(of: lastMessageId) { _ in
                         scrollToBottom(proxy: proxy)
                     }
                 }
